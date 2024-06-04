@@ -2,12 +2,10 @@ from bs4 import BeautifulSoup as bs
 import requests as re
 import csv
 import json
-import pandas as pd
 import time
 import undetected_chromedriver
 
-
-import json
+from fake_useragent import UserAgent
 
 def through_pages():
     max_values = set()
@@ -60,58 +58,42 @@ def find_max_page():
                     print(max_value)
                 else:
                     print("Чёт не сработало ")
-                    # try:
-                    #     driver = undetected_chromedriver.Chrome()
-                    #     driver.get(pg)
-                    #     time.sleep(50)
-                    # except Exception as ex:
-                    #     print(ex)
-                    # finally:
-                    #     driver.close()
-                    #     driver.quit()
 
     with open('max_pages.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         for value in max_values:
             writer.writerow([value])
 
-
 def parse_cyberleninka():
     url_c = "https://cyberleninka.ru"
 
-    # Получаем ссылки с главной страницы
     r = re.get(url_c)
     soup = bs(r.text, "lxml")
 
     block_left = soup.find('div', class_='half')
     block_right = soup.find('div', class_='half-right')
 
-    b_l = []
-    b_r = []
+    b_links = []  # Define b_links as an empty list
 
     for i in block_left:
         con_b_l = block_left.find_all('a')
         for link in con_b_l:
-            b_l.append(url_c + link.get('href'))
+            b_links.append(url_c + link.get('href'))
 
     for i in block_right:
         con_b_r = block_right.find_all('a')
         for link in con_b_r:
-            b_r.append(url_c + link.get('href'))
+            b_links.append(url_c + link.get('href'))
 
-    b_l = list(set(b_l))  # удаляем дубликаты из списка
-    b_r = list(set(b_r))  # удаляем дубликаты из списка
+    b_links = list(set(b_links))  # Remove duplicates from b_links
 
-    # Записываем ссылки в файл links.csv
     with open('links.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        for i in b_l:
+        for i in b_links:
             writer.writerow([i])
-        for j in b_r:
-            writer.writerow([j])
 
-    # Парсим страницы и получаем новые ссылки
-    b_links = []
+    b_links = []  # Reset b_links as an empty list
+
     with open('links.csv', 'r') as file:
         reader = csv.reader(file)
         for row in reader:
@@ -122,25 +104,13 @@ def parse_cyberleninka():
                 if block is not None:
                     con_b = block.find_all('a')
                     for link in con_b:
-                        # добавляем ссылку в список
                         b_links.append(url_c + link.get('href'))
-                        print(b_links[-1])  # выводим ссылку в консоль
+                        print(b_links[-1])  # Print the link in the console
                 else:
                     print("Чёт не сработало ")
-                    continue
-                    # try:
-                    #     driver = undetected_chromedriver.Chrome()
-                    #     driver.get(url)
-                    #     time.sleep(50)
-                    # except Exception as ex:
-                    #     print(ex)
-                    # finally:
-                    #     driver.close()
-                    #     driver.quit()
 
-    b_links = list(set(b_links))  # удаляем дубликаты из списка
+    b_links = list(set(b_links))  # Remove duplicates from b_links
 
-    # Записываем новые ссылки в файл b_links.csv
     with open('b_links.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         for link in b_links:
@@ -148,17 +118,23 @@ def parse_cyberleninka():
 
 def parse_links():
     url_c = "https://cyberleninka.ru"
+    b_links = []  # Define b_links as an empty list
+    ua = UserAgent()
+    uagent = ua.chrome
+
     with open('new_links.csv', 'r') as file:
         reader = csv.reader(file)
         for row in reader:
             for url in row:
-                r = re.get(url)
+                headers = {'User-Agent': uagent}
+                r = re.get(url, headers=headers)
                 soup = bs(r.text, "lxml")
                 block = soup.find('div', class_='full')
                 if block is not None:
                     con_b = block.find_all('a')
                     for link in con_b:
-                        print(url_c + link.get('href'))
+                        b_links.append(url_c + link.get('href'))
+                        print(b_links[-1])  # Print the link in the console
                 else:
                     print("\033[1;31mЧёт не сработало\033[0m")
                     try:
@@ -170,8 +146,8 @@ def parse_links():
                     finally:
                         driver.close()
                         driver.quit()
-                    continue
-                time.sleep(50)
+
+    b_links = list(set(b_links))  # Remove duplicates from b_links
 
     with open('b_links.csv', 'w', newline='') as file:
         writer = csv.writer(file)
